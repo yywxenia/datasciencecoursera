@@ -1,0 +1,78 @@
+### Analysis of the Effect between Automatic and Manual Transmission on MPG
+Author: Yiwei Yan
+Date: January 23, 2015
+
+#### 1. Executive Overview
+A magazine about the automobile industry named  Motor Trend is interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). In this study, there are two main questions to be addressed and answered. One is "whether an automatic or manual transmission better for MPG", and the other is "what the MPG difference between automatic and manual transmissions". Therefore, We will utilize a dataset named "mtcars" to conduct our analysis and figure out the relationship between transmission types and MPG.
+
+#### 2. Data Summary and Process
+
+In our study, we utilize data from the dataset named"mtcars", which is extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973-74 models). Specifically, "mtcars" is a dataset with 32 observations on 11 variables. Below are the variables shows in mtcars dataset: 
+
+- mpg: Miles/(US) gallon; cyl: Number of cylinders; disp: Displacement (cu.in.);hp: Gross horsepower; drat: Rear axle ratio; wt: Weight (lb/1000); qsec: 1/4 mile time; vs: V/S; am: Transmission (0 = automatic, 1 = manual); gear: Number of forward gears; carb: Number of carburetors.
+
+Before start our analysis, Let's open the mtcars dataset and review some detail summary about it at first:
+```{r Echo=T}
+rm(list=ls())
+data(mtcars)
+str(mtcars)
+```
+
+#### 3. Model Building
+In the model building process, firstly, we convert qualitative data into factors. Then, we use all variables in the dataset as predictors to run our first model (Model1).Thus, our Model1 includes all variables as predictors of mpg. 
+```{r, echo=T}
+#Convert qualitative data
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$vs <- factor(mtcars$vs)
+mtcars$carb <- factor(mtcars$carb)
+mtcars$am <- factor(mtcars$am, labels = c("Automatic", "Manual"))
+mtcars$gear <- factor(mtcars$gear)
+Model1 = lm(mpg ~ ., data = mtcars)
+s1<-summary(Model1)$coef
+```
+
+Since some variales in Model1 are not significant. So in the next step, we use the stepwise model selection to find out significant predictors and also delete the insignificant variables from Model1 to rebuild a new model named Model2 that with better fit performance. Specifically, The step function performs selection by calling lm repeatedly to build multiple models and select best variables from them using both forward and backward elimination methods by AIC. This ensures Model2 to have useful variables while omitting ones that do not contribute significantly to predicting mpg. According to he adjusted R-squared 0.84, we can conclude that more than 84% of the variability is explained by Model2 now.
+```{r, echo=T}
+Model2 <- step(Model1, trace = 0, direction="both")
+summary(Model2)
+```
+
+Furthermore, we compare Model2 with a basic model (ModelB) that only has one independent variable "am" as the predictor.Based on the comparison result between Model2 and ModelB, since the p-value is highly significant, we can reject the null hypothesis that variables as cyl, hp and wt do not contribute to the accuracy of the model.
+As a results, according to the boxplot we draw for ModelB (Appendix Figure 2), manual transmission has 6 MPG more than that of automatic transmission in general.
+```{r, echo=T}
+ModelB<-lm(mpg~am, data= mtcars)
+anova(ModelB,Model2)
+```
+
+#### 4. Statistical Inference
+In this section, we compute top three points in each case of influence measures. The data points with the most leverage in the fit using hatvalues() and most affect the model coefficients is given by the dfbetas() function. We give the residuals plots of Model2 in Appendix Figure 3.
+```{r, echo=T}
+tail(sort(hatvalues(Model2)),3)
+tail(sort(dfbetas(Model2)[,6]))
+```
+
+After that, we conduct a Two Sample t-test between the transmission types. The null hypothesis "transmission types don't have an effect on the MPG", which is discarded for a p-value greater than 0.05. The results (0.001374 p-value and difference of means) shows that the manual transmission has significantly more MPG than automatic.
+```{r, echo=T}
+t.test(mpg ~ am, data = mtcars)
+```
+
+#### 5. Conclusion
+To sum up, as shown in our analysis results, we can conclude some important results for Motor Trend: (1) The transmission types of a car do has a significant effect on the fuel efficiency (MPG). Usually, the MPG of manual transmission is more than that of automatics usually. (2) Besides, MPG will decrease by 2.5 for every 1000 lb increase in wt. (3) When cylinders (cyl) increases from 4 to 6/8, the MPG will decrease by a factor of 3/2.2 respectively.
+
+#### 6. Appendix
+##### Figure 1: Pairwise plot of mtcars
+```{r, echo=T}
+pairs(mtcars, panel = panel.smooth, main = "Pairwise plot of mtcars", col="blue")
+```
+##### Figure 2: MPG versus Transmission
+```{r, echo=T}
+Figure2<- boxplot(mpg ~ am, data = mtcars,
+        xlab = "Transmission Types", 
+        ylab = "MPG",
+        main = "MPG versus Transmission", col = c("light blue","dark blue"))
+```
+##### Figure 3: Residual Plots
+```{r, echo=T}
+par(mfrow=c(2,2))
+plot(Model2, col = "Blue", main = "Residual Plots")
+```
